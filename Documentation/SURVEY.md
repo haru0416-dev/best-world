@@ -10,7 +10,7 @@ VRChat ワールド（Unity 2022.3 Built-in Forward、ライトマップ主照�
 
 - 論文: SIGGRAPH PBS 2014–2025、OpenPBR 1.1、Filament、Frostbite、Karis/Turquin、JCGT、Vlachos 2015、ZH3 i3D 2024
 - 公式 API: VRC Light Volumes（v2 と v3 の `worldNormal`）、LTCGI、Bakery MonoSH
-- 出荷実装（読むだけ）: Graphlit（z3y）、Filamented（Silent）、GeneLit（Momoma）、ORL Standard、peppermint、Poiyomi / lilToon の位置づけ、RED_SIM CompatibleShaders リスト
+- 出荷実装（読むだけ）: Graphlit（z3y）、Filamented（Silent）、GeneLit（Momoma）、ORL Standard、peppermint、Mochie Standard、RED_SIM CompatibleShaders のワールド寄りの列（Xiexe、UnlitWF、Quantum、Unity Shaders Plus、ACLS、Moriohs、Poiyomi / lilToon）
 
 ## 結論（0.4.0）
 
@@ -33,7 +33,8 @@ VRChat ワールド（Unity 2022.3 Built-in Forward、ライトマップ主照�
 | IBL mip | ボックス投影だけ | プローブ毎に Frostbite `ComputeDistanceBaseRoughness` | Lagarde 2014 §4.10.2、HDRP、Graphlit ContactHardening |
 | Volume / additive L1 | 線形 `L0+L1·n` | PC は ZH3 曲線フィット | Roughton et al. i3D 2024 §3.4.3。チャンネル別軸（クラブの RGB ライトを潰さない） |
 | Volumes define あり・シーンなし | L1 だけのプローブ | `ShadeSH9` | Graphlit は `LightVolumeEnabled()` が偽なら L2 を足す。同じ穴 |
-| Shadowmask | Unity バイリニア | ライトマップ bicubic トグルに乗せる | Graphlit。ForwardBase の Mixed 太陽が主用途 |
+| Shadowmask | Unity バイリニア | ライトマップ bicubic トグルに乗せる | Graphlit / Mochie。ForwardBase の Mixed 太陽が主用途 |
+| LTCGI ライトマップ UV | 変換済み | **生 UV1** | PiMaker 契約。Graphlit / Mochie は `unity_LightmapST` を戻す。アトラスでスクリーン影がずれる |
 | リアルタイム影 → IBL specAO | 検討 | **積まない** | 影の中でもスカイ / 室内プローブは残る。Graphlit も既定オフ |
 
 ## 製品横断で見たが積まない
@@ -49,9 +50,31 @@ VRChat ワールド（Unity 2022.3 Built-in Forward、ライトマップ主照�
 | `LightVolumeSpecularDominant` | GeneLit | Standard Fresnel。F82 / Turquin を通さない |
 | 指数フォールバックをリアルタイム影に掛ける | Graphlit オプトイン | 上記 specAO と同じ |
 | Colored cookies / ZH3 輝度軸 | Graphlit | ニッチ。RGB L1 はチャンネル別の方がクラブに合う |
+| ZH3 を Unity プローブに重ねる | Graphlit オプトイン | プローブには本物の L2 がある。ZH3 は L1 だけのボリューム用 |
+| 円筒 / 追加 Udon ボックス投影 | GeneLit | クラブ専用プロキシ。シェーダー単体で完結させない |
+| Mochie SSR / Rain / SSS / AudioLink | Mochie Standard | GrabPass とアバター機能。壁の既定にしない |
+| Mochie Geomerics プローブ / Directional ×1.5 | Mochie | 非物理。プローブは ShadeSH9、Directional は Unity デコード |
+| Vertex light の linearstep ポップ抑制 | Mochie | 建築の主照明ではない。Unity `Shade4PointLights` のまま |
+| LTCGI 鏡面 × F0 | 物理的には正しい | 電介体 4% でスクリーンが消える。PiMaker / Graphlit / Mochie 既定は掛けない |
 | peppermint | mintea | アバター向け。ライトマップをサンプルしない |
-| Poiyomi / lilToon Realistic | 互換リスト上位 | アバター全部入り。壁に敷かない |
+| Poiyomi / lilToon / Xiexe / UnlitWF / ACLS / Moriohs / RealToon | CompatibleShaders 上位 | アバター / NPR。壁に敷かない |
+| Quantum / Unity Shaders Plus | CompatibleShaders | ASE の Standard 寄せ。材質モデルの更新先ではない |
 | 自前 LTC / SSR / GTAO | 各種 | 0.3.0 と同じ却下 |
+
+## 製品を読んで確定したこと（0.4.0 二巡目）
+
+RED_SIM の CompatibleShaders はほぼアバター列です。ワールド PBR として中身を読んだのは Graphlit、Mochie Standard、GeneLit、Filamented の公開面、ORL、LTCGI / Light Volumes の公式 API です。
+
+| 製品 | ワールドとして拾ったもの | ワールドとして捨てたもの |
+| --- | --- | --- |
+| Graphlit | Frostbite 距離ラフネス、ZH3 チャンネル別、L2 復帰、bicubic shadowmask、LTCGI 生 UV1 | Clustered BIRP、AreaLit、UdonRP、inverse square、ZH3 輝度軸、自前 PCF |
+| Mochie Standard | 同じ HDRP 距離ラフネス、bicubic shadowmask、LTCGI 生 UV1、Light Volumes の enabled ゲート | SSR、雨、SSS、AudioLink、AreaLit、プローブ Geomerics、Directional 1.5 倍 |
+| GeneLit | Light Volumes additive、LTCGI include、Filament DFG | 円筒投影、Udon 追加ボックス、DFG LUT、公式 `LightVolumeSpecularDominant`、Grab 屈折 |
+| Filamented | BRDF / spec AO の品質下限 | Standard 型の巨大バリアント。ワールド専用の切り分けではない |
+| ORL | MonoSH / Bakery の実務 | フル SH / RNM を既定にしない |
+| その他 CompatibleShaders | Light Volumes を「呼べる」ことだけ | 材質モデルもベイクフィルタもワールド最適ではない |
+
+結論は変わらない。材質は 0.3.0、ベイク空間は Graphlit/Mochie が毎日踏んでいる 4 項、LTCGI は公式の生 UV1。機能を足すほどベストにはならない。
 
 ## 結論（0.3.0）
 
@@ -62,8 +85,8 @@ VRChat ワールド（Unity 2022.3 Built-in Forward、ライトマップ主照�
 | NDF | GGX / Trowbridge–Reitz | 2025 コースでも置換先なし。GTR / Student-t はエンジン既定になっていない |
 | 可視 | Heitz 相関 Smith。Quest は Hammon Fast | Filament と同値 |
 | 導体 Fresnel | OpenPBR F82-tint | Belcour 基底より安く、OpenPBR 1.1 でも変更なし |
-| 誘電体拡散 PC | EON | OpenPBR 1.1 / SIGGRAPH 2025 の業界標準 |
-| 誘電体拡散 Quest | **FON 単散乱**（Lambert ではない） | EON の前半。MS 項を落とすだけで PC と連続する |
+| 電介体拡散 PC | EON | OpenPBR 1.1 / SIGGRAPH 2025 の業界標準 |
+| 電介体拡散 Quest | **FON 単散乱**（Lambert ではない） | EON の前半。MS 項を落とすだけで PC と連続する |
 | 直接鏡面エネルギー | Turquin / Karis DFG.y | 狭い解析ライトに Fdez の一様照度仮定は合わない |
 | IBL エネルギー | Fdez-Agüera 2019 | ライトマップがまさにその照度 |
 | レイヤ結合 | **OpenPBR 1.1 albedo-scaling** | EON は Burley と違い grazing で暗くならない。`(1-F)` ではなく `1-E_spec(ωo)` |
@@ -113,7 +136,7 @@ VRChat ワールド（Unity 2022.3 Built-in Forward、ライトマップ主照�
 | Dual-lobe GGX / 異方性 GGX | 各種 | ヘア・ブラシ金属。TBN 品質がワールド資産で揃わない |
 | Substrate / UE5 層グラフ | 2023– | BIRP Forward に載らない |
 | Neural / MLP BRDF | 2025–2026 | SIGGRAPH 2025 Weidlich。ウェイトがワールドに乗らない |
-| GT7 トーンマップ、蛍光、Strand | SIGGRAPH 2025 | ポスト or ヘア。表面 BRDF ではない |
+| GT7 トーンマップ、螢光、Strand | SIGGRAPH 2025 | ポスト or ヘア。表面 BRDF ではない |
 | Hazy specular / retro-reflection | OpenPBR 予定 | 1.1 時点で未仕様 |
 
 ### アンチエイリアス / IBL
