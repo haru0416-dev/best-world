@@ -94,6 +94,8 @@ namespace BestWorld.Editor
             {
                 DrawProp(materialEditor, properties, "_CoatWeight");
                 DrawProp(materialEditor, properties, "_CoatRoughness");
+                DrawProp(materialEditor, properties, "_CoatIOR");
+                DrawProp(materialEditor, properties, "_CoatDarkening");
                 DrawProp(materialEditor, properties, "_CoatMaskMap");
             }
 

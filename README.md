@@ -18,16 +18,16 @@ VRChat **world geometry** 向けの PBR シェーダーです。アバター用�
 
 BestWorld が固定した優先順位:
 
-1. OpenPBR EON 拡散（PC）+ Filament GGX + Fdez-Agüera IBL マルチスキャタ
-2. OpenPBR F82-tint（金属のエッジ）
-3. Lightmap / Directional / Bakery MonoSH / Lightmapped Specular / Bicubic
+1. OpenPBR 1.1 の glossy-diffuse（EON + `1-E_spec`）+ Filament GGX + Fdez-Agüera IBL
+2. OpenPBR F82-tint（金属のエッジ）。滑らかな金属の IBL にも使う
+3. Lightmap / Directional / Bakery MonoSH / Lightmapped Specular / 色と方向の Bicubic
 4. VRC Light Volumes（additive をライトマップ静的物に足す）
 5. プローブ IBL（box projection、露出オクルージョン、ホライゾンオクルージョン）
-6. LTCGI は任意・PC のみ
-7. PC と Quest を **別 SubShader** で切る（Vulkan PC 誤用より Android 負荷を優先）
+6. オプトインのコート（IOR 1.6 + 暗化）と LTCGI（PC）
+7. PC と Quest を **別 SubShader** で切る。Quest は FON・幾何 AA・mediump D
 8. GrabPass・アウトライン・AudioLink・Toon は入れない
 
-使っている式は `Documentation/ALGORITHMS.md` に一次資料から導出してあります。2018 年以降の候補の採否は `Documentation/SURVEY.md`。
+使っている式は `Documentation/ALGORITHMS.md` に一次資料から導出してあります。2018–2026 の広域採否は `Documentation/SURVEY.md`。
 
 ## シェーダー
 
@@ -35,7 +35,7 @@ BestWorld が固定した優先順位:
 - `BestWorld/Lit Cutout` — 切り抜き（PC は AlphaToMask）
 - `BestWorld/Lit Transparent` — フェード / Premultiply
 
-Quest / Android ビルドでは自動で軽量 SubShader に落ちます。ForwardAdd、EON、Clearcoat、Parallax、Detail、Bicubic、LTCGI は Quest から外れます。
+Quest / Android ビルドでは自動で軽量 SubShader に落ちます。ForwardAdd、EON マルチスキャタ、Clearcoat、Parallax、Detail、Bicubic、LTCGI は Quest から外れます。FON 単散乱と幾何スペキュラ AA は残します。
 
 ## 導入
 
