@@ -14,16 +14,17 @@
 1. Linear color space.
 2. Lightmap static on architecture.
 3. Directional lightmaps (Progressive) or Bakery MonoSH.
-4. At least one reflection probe per distinct lighting volume. Enable box projection.
-5. Mixed lighting: Shadowmask.
+4. At least one reflection probe per distinct lighting volume. Enable box projection. BestWorld sharpens nearby reflections from the probe AABB (Frostbite distance roughness); it does not need extra Udon.
+5. Mixed lighting: Shadowmask. Keep **Bicubic Lightmap and Shadowmask** on for architecture.
 6. Keep realtime extra lights to props and hero animated sources.
 
 ## Light Volumes
 
 Install `red.sim.lightvolumes`, then press **Enable Light Volumes compile** on a BestWorld material.
 
-- Dynamic / non-lightmapped meshes sample full volumes (probe replacement).
+- Dynamic / non-lightmapped meshes sample full volumes (probe replacement). PC reconstructs L1 with ZH3.
 - Lightmapped meshes sample additive volumes only, on top of the bake.
+- If the compile define is on but the scene has no volumes, BestWorld uses Unity `ShadeSH9` (L2). It does not keep the package's L1-only probe fallback.
 - Place the official attribution prefab or a world description line. That is how avatars know they can use volume-aware shaders.
 
 ## LTCGI
@@ -35,7 +36,7 @@ Install `at.pimaker.ltcgi`, enable the compile define, then toggle LTCGI on near
 Android uses the second SubShader:
 
 - No ForwardAdd
-- No clearcoat / parallax / detail / bicubic / LTCGI
+- No clearcoat / parallax / detail / bicubic / LTCGI / ZH3 / distance roughness
 - FON single-scatter (not Lambert), Filament mediump D, geometric specular AA
 - Lightmaps, probes, and Fdez-Agüera IBL energy remain
 
