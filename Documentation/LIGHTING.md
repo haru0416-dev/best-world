@@ -29,7 +29,7 @@ Install `red.sim.lightvolumes`, then press **Enable Light Volumes compile** on a
 
 ## LTCGI
 
-Install `at.pimaker.ltcgi`, enable the compile define, then toggle LTCGI on nearby materials only. Screens and large emissive quads are the use case. Do not enable it on every wall.
+Install `at.pimaker.ltcgi`, enable the compile define, then toggle LTCGI on nearby materials only. Screens and large emissive quads are the use case. Do not enable it on every wall. BestWorld passes mesh UV1 into LTCGI (the package's occlusion map), not the transformed lightmap UV.
 
 ## Quest
 

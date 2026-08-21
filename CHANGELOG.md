@@ -1,10 +1,11 @@
 # BestWorld 0.4.0
 
-- Broader survey of shipping VRChat world PBR (Graphlit, Filamented, GeneLit, ORL, peppermint) plus Light Volumes / Bakery practice — not papers alone.
+- Broader survey of shipping VRChat world PBR: Graphlit, Mochie Standard, GeneLit, Filamented, ORL, peppermint, plus the RED_SIM CompatibleShaders list — not papers alone.
 - Box-projected IBL uses Frostbite/HDRP distance-based roughness (contact hardening) per probe. DFG energy stays on shading roughness.
 - Light Volume L1 on PC uses ZH3 hallucination (Roughton et al., i3D 2024) instead of linear L0+L1. Quest stays linear.
 - Compiling Light Volumes no longer drops Unity L2 when the scene has volumes disabled. Diffuse falls back to `ShadeSH9`.
 - Bicubic filtering applies to shadowmask when the lightmap bicubic toggle is on (PC ForwardBase mixed lighting).
+- LTCGI samples the occlusion map with raw mesh UV1 (PiMaker / Graphlit / Mochie contract), not `unity_LightmapST`-transformed lightmap UVs.
 
 # BestWorld 0.3.0
 
