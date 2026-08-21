@@ -1,6 +1,7 @@
 #pragma vertex BestWorldVert
 #pragma fragment BestWorldFragAdd
 #pragma target 4.5
+#define BESTWORLD_FORWARD_ADD
 #pragma skip_variants DIRLIGHTMAP_SEPARATE DYNAMICLIGHTMAP_ON
 #pragma shader_feature_local _DETAIL_MAP
 #pragma shader_feature_local _PARALLAXMAP
