@@ -31,13 +31,13 @@ L_o \leftarrow L_o + (f_d + f_r)\, E\, a\, \langle n\cdot l\rangle
 glTF / Filament の metallic-roughness。
 
 - 知覚ラフネス \(p \in [0,1]\)。線形ラフネス \(\alpha = p^2\)（Burley 2012）。\(\alpha\) を直接スライダーにするとハイライト幅が知覚的に線形でない。
-- 誘電体 F0: Filament は reflectance \(r\)（既定 0.5）から
+- 雙電体 F0: Filament は reflectance \(r\)（既定 0.5）から
 
 \[
 F_{0,\mathrm{diel}} = 0.16\, r^2
 \]
 
-\(r=0.5\) で \(F_0=0.04\)。これは IOR 1.5 の空気–誘電体界面に対応します。
+\(r=0.5\) で \(F_0=0.04\)。これは IOR 1.5 の空気–雙電体界面に対応します。
 
 \[
 F_0 = \frac{(1-1.5)^2}{(1+1.5)^2} = 0.04
@@ -73,7 +73,7 @@ D_{\mathrm{GGX}}(h,\alpha) = \frac{\alpha^2}{\pi\bigl((n\cdot h)^2(\alpha^2-1)+1
 f = (n\cdot h)(\alpha^2-1)(n\cdot h)+1,\qquad D = \frac{\alpha^2}{\pi f^2}
 \]
 
-\(\alpha\to 0\) でデルタ関数に近づくので \(\alpha \ge 0.002\) にクランプします。
+\(\alpha\to 0\) でデルタ関数に近づくので \(\alpha \ge 0.002\) にクランプします。Quest は mediump 相殺を避ける Filament 形 \(1-(n\cdot h)^2 = \|n\times h\|^2\) です。
 
 ### 3.2 V: Height-correlated Smith GGX（Heitz 2014）
 
@@ -97,7 +97,7 @@ Schlick:
 F(\mu) = F_0 + (F_{90}-F_0)(1-\mu)^5,\qquad \mu = h\cdot v
 \]
 
-Filament は \(F_{90}=\mathrm{saturate}(\langle F_0,\,(50\cdot 0.33,50\cdot 0.33,50\cdot 0.33)\rangle)\) を誘電体ローブに使います。輝度近似で、典型的な \(F_0=0.04\) では \(F_{90}=1\) になります。\(F_0\) が極端に暗い（スペキュラオクルージョンを F0 に焼いた）面では grazing も落ちます。金属ローブは OpenPBR の F82-tint で、その中の Schlick は \(F_{90}=1\) です。
+Filament は \(F_{90}=\mathrm{saturate}(\langle F_0,\,(50\cdot 0.33,50\cdot 0.33,50\cdot 0.33)\rangle)\) を雙電体ローブに使います。輝度近似で、典型的な \(F_0=0.04\) では \(F_{90}=1\) になります。\(F_0\) が極端に暗い（スペキュラオクルージョンを F0 に焼いた）面では grazing も落ちます。金属ローブは OpenPBR の F82-tint で、その中の Schlick は \(F_{90}=1\) です。
 
 導体のシルエット付近（約 82°、\(\bar\mu=1/7\)）は Schlick より反射が落ちます。OpenPBR:
 
@@ -109,17 +109,17 @@ F_{82}(\mu)=F_{\mathrm{Schlick}}(\mu)-\frac{\mu(1-\mu)^6}{\bar\mu(1-\bar\mu)^6}\
 F(\bar\mu)=\mathtt{specular\_color}\, F_{\mathrm{Schlick}}(\bar\mu)
 \]
 
-`specular_color = 1` なら補正項は 0 で Schlick に戻ります。誘電体ローブには掛けず、金属側だけ使います。
+`specular_color = 1` なら補正項は 0 で Schlick に戻ります。雙電体ローブには掛けず、金属側だけ使います。
 
 ## 4. 拡散
 
-Lambert（Quest）:
+Lambert（参照のみ。Quest では使わない）:
 
 \[
 f_d = \frac{c_{\mathrm{diff}}}{\pi}
 \]
 
-PC は OpenPBR 1.0 の **EON**（Portsmouth, Kutz, Hill 2024/2025）。Fujii の FON 単散乱に、Kulla–Conty 型の相互的マルチスキャタを足します。ラフネス \(r\in[0,1]\) は OpenPBR の `base_diffuse_roughness`。ワールドではスライダー1本なので知覚ラフネス \(p\) を入れます。
+Quest は Fujii FON の単散乱（EON の \(f_{\mathrm{ss}}\)）。PC は OpenPBR 1.1 の **EON**（Portsmouth, Kutz, Hill 2024/2025）。Fujii の FON 単散乱に、Kulla–Conty 型の相互的マルチスキャタを足します。ラフネス \(r\in[0,1]\) は OpenPBR の `base_diffuse_roughness`。ワールドではスライダー1本なので知覚ラフネス \(p\) を入れます（OpenPBR の既定 0 にはしない。理由は SURVEY）。
 
 \[
 A = \frac{1}{1+c_1 r},\qquad
@@ -131,6 +131,8 @@ s = l\cdot v - (n\cdot l)(n\cdot v),\qquad
 f_{\mathrm{ss}} = \frac{\rho}{\pi} A\bigl(1 + r\,\tfrac{s}{t}\bigr)
 \]
 
+Quest はここで止めます。PC はマルチスキャタを足します。
+
 \[
 f_{\mathrm{ms}} = \frac{\rho_{\mathrm{ms}}}{\pi}\frac{(1-\hat E_i)(1-\hat E_o)}{1-\langle\hat E\rangle},\qquad
 \rho_{\mathrm{ms}} = \frac{\rho^2\langle\hat E\rangle}{1-\rho(1-\langle\hat E\rangle)}
@@ -138,7 +140,17 @@ f_{\mathrm{ms}} = \frac{\rho_{\mathrm{ms}}}{\pi}\frac{(1-\hat E_i)(1-\hat E_o)}{
 
 \(\hat E\) は論文 Listing 1 の \(E_{\mathrm{FON}}\) 近似（誤差 < 0.1%、`acos` なし）。\(r\to 0\) で Lambert に戻ります。金属は \(\rho=0\) なので拡散は消えます。
 
-Burley 2012 は Filament の既定でしたが、炉試験でエネルギーを失い、OpenPBR / SIGGRAPH 2025 の業界標準は EON です。直接光に \((1-F)\) は掛けません。
+Burley 2012 は Filament の既定でしたが、炉試験でエネルギーを失い、OpenPBR / SIGGRAPH 2025 の業界標準は EON です。
+
+### 4.1 レイヤ結合（OpenPBR 1.1 式 41）
+
+Glossy-diffuse は雙電体界面の上に拡散基板です。Albedo-scaling:
+
+\[
+f = f_{\mathrm{spec}} + \bigl(1-E_{\mathrm{spec}}(\omega_o)\bigr)\, f_{\mathrm{diffuse}}
+\]
+
+\(E_{\mathrm{spec}}(\omega_o)\) は Karis DFG で \(F_0\cdot\mathrm{DFG}_x+\mathrm{DFG}_y\)。マイクロファセット Fresnel \(F(h\cdot v)\) ではありません。EON は grazing で明るくなるので、Burley 向けに \((1-F)\) を省略した Filament の慣習はここでは誤りです。IBL の \(k_D\) と同じ量です。
 
 ## 5. マルチスキャタ補償
 
@@ -154,7 +166,7 @@ LUT がないので Karis の解析 DFG を \(r \approx \mathrm{DFG}_y\) とし�
 
 **IBL**は Fdez-Agüera 2019。ワールドの主照明はライトマップ照度なので、ここの近似が本領です。式は §8。
 
-## 6. 幾何スペキュラ AA（Tokuyoshi–Kaplanyan 2021）
+## 6. 幾何スペキュラ AA（Tokuyoshi–Kaplanyan 2021 + Vlachos 2015）
 
 スクリーン空間の法線微分から NDF をぼかします。2021 の等方フォワード形（式 13）は Filament 2019 と同じ形で、クランプ \(\kappa=0.18\) です。ワールドは IBL / ライトマップが主なので、ライト毎のハーフベクトルフィルタより法線ベースが合います。
 
@@ -166,7 +178,15 @@ LUT がないので Karis の解析 DFG を \(r \approx \mathrm{DFG}_y\) とし�
 \alpha'^2 = \mathrm{saturate}(\alpha^2 + \min(2\,\mathrm{var},\,\kappa))
 \]
 
-戻す知覚ラフネスは \(\sqrt{\alpha'}\)（\(\alpha'=\sqrt{\alpha'^2}\) のあと \(p=\sqrt{\alpha}\)）。\(\sigma^2=0.15\)、\(\kappa=0.18\)。初版は \(\sqrt{p^2 + k}\) で次元がずれていたので直し済みです。
+戻す知覚ラフネスは \(\sqrt{\alpha'}\)（\(\alpha'=\sqrt{\alpha'^2}\) のあと \(p=\sqrt{\alpha}\)）。\(\sigma^2=0.15\)、\(\kappa=0.18\)。
+
+VR では画素立体角が大きく、密メッシュは法線マップが無くても火花が出ます（Tokuyoshi 2021 が HMD を明示）。幾何法線に Vlachos GDC 2015 のフロアを足します。
+
+\[
+p \leftarrow \max\bigl(p,\; \mathrm{saturate}(\max(\|\partial_x n_g\|^2,\|\partial_y n_g\|^2))^{1/3}\bigr)
+\]
+
+Quest はこの幾何フロアだけです。PC はさらに、MSAA がシルエットで法線を外挿するのを避けるため **centroid 補間の幾何法線** に切り替えます（長さ² ≥ 1.01）。
 
 ## 7. オクルージョン
 
@@ -242,7 +262,7 @@ L = F_{ss}E_{ss}\,L_{\mathrm{cube}} + (F_{ms}E_{ms}+k_D)\,E_{\mathrm{irradiance}
 k_D = c_{\mathrm{diff}}\bigl(1-(F_{ss}E_{ss}+F_{ms}E_{ms})\bigr)
 \]
 
-炉試験で金属・誘電体ともエネルギーが保たれます。F82 は直接光の金属ローブだけに使い、IBL の DFG は LUT を持たないため Schlick のままです。
+炉試験で金属・雙電体ともエネルギーが保たれます。滑らかな金属の IBL は F82（\(n\cdot v\)）、ラフな金属は Fdez のラフネス依存 grazing に戻します。DFG LUT が無いので、完全な F82 スプリットサムではありません。
 
 Unity のキューブマップは BIRP のフィルタに合わせてミップを切ります。`Unity_GlossyEnvironment` は線形 \(p\cdot\mathrm{LOD}\) ではなく
 
@@ -254,13 +274,27 @@ p' = p(1.7-0.7p),\qquad \mathrm{mip} = p'\cdot \mathrm{UNITY\_SPECCUBE\_LOD\_STE
 
 ## 9. Clearcoat
 
-IOR 1.5 の薄い層。\(F_{0,c}=0.04\)。可視は Kelemen 2001:
+OpenPBR の既定 IOR は **1.6**。
+
+\[
+F_{0,c}=\left(\frac{1-1.6}{1+1.6}\right)^2 \approx 0.053
+\]
+
+可視は Kelemen 2001:
 
 \[
 V_c = \frac{1}{4\,(l\cdot h)^2}
 \]
 
-ベースは \((1-F_c)\) で減衰し、コート GGX を足します。IBL も同じ \(F_c(n\cdot v)\)。
+ベースは albedo-scaling \((1-F_c)\) で減衰し、コート GGX を足します。加えて内部反射の暗化（OpenPBR 1.1 式 76、白いコート \(T^2=1\)）:
+
+\[
+K = F_{0,c}+\frac{1-F_{0,c}}{21},\qquad
+\Delta=\frac{1-K}{1-E_b K},\qquad
+\mathrm{base}\times\mathrm{lerp}(1,\Delta,\,\delta\,w_c)
+\]
+
+\(\delta=\) `coat_darkening`（既定 1）。0 にすると暗化だけ相殺し、\((1-F_c)\) は残ります。IBL も同じ \(F_c(n\cdot v)\) と \(\Delta\)。
 
 ## 10. SH / プローブ
 
@@ -312,7 +346,9 @@ E = L_0 + (L_1\cdot n) = L_0\bigl(1 + 2\, nL_1\cdot n\bigr)
 
 ### 11.3 Bicubic
 
-Keys / GPU Gems 系の 4 タップ三次。ライトマップのブロック感を落とします。Quest ではバイリニアのままです。
+Keys / GPU Gems 系の 4 タップ三次。**色マップと方向マップの両方**に掛けます。色だけ三次だと MonoSH / Dominant Direction のハイライトがテクセル格子に戻ります。Quest ではバイリニアのままです。
+
+Cutout の拡散だけ、弱い wrap \(\mathrm{saturate}((n\cdot l + 0.25)/1.25)\) を使います。葉カードの裏面用で、鏡面とシャドウは `saturate(n·l)` のままです。
 
 ## 12. Mixed lighting
 
@@ -326,7 +362,9 @@ Keys / GPU Gems 系の 4 タップ三次。ライトマップのブロック感�
 - ライトマップ無し: `LightVolumeSH` がプローブの代わり。
 - ライトマップ有り: `LightVolumeAdditiveSH` だけを **加算**。ライトマップを置換しない（公式 For Shader Developers）。
 
-評価は L0+L1。スペキュラは優勢 L1 方向でこちらの GGX を使います（アバター向けの 3 色 `LightVolumeSpecular` ではなく、ハードサーフェス向けの 1 ローブ）。
+評価は L0+L1。スペキュラは優勢 L1 方向でこちらの GGX / F82 / Turquin を使います。公式 `LightVolumeSpecularDominant` は Standard のフレネル前提なので呼びません。3 色 `LightVolumeSpecular` はアバター向けです。
+
+Quest の GGX \(D\) は Filament の mediump 形 \(\|n\times h\|^2 = 1-(n\cdot h)^2\) です。`1-NoH^2` は GLES3 ハイライトで相殺します。
 
 ## 14. LTCGI
 
@@ -345,10 +383,15 @@ Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリア
 | 拡散 IBL | 鏡面 DFG を引いていなかった | split-sum のエネルギー |
 | 露出オクルージョン | アドホック多項式 | Lagarde specAO + ベイク輝度 |
 | 直接拡散 | Burley に \((1-F)\) を掛けていた | Filament: Burley が grazing を担う |
-| 誘電体 \(F_{90}\) | スカラー `dot(f0, 16.5)` | Filament: `dot(f0, vec3(50·0.33))` |
+| 雙電体 \(F_{90}\) | スカラー `dot(f0, 16.5)` | Filament: `dot(f0, vec3(50·0.33))` |
 | PC 拡散（0.2.0） | Burley 2012 | OpenPBR EON 2024 |
 | IBL エネルギー（0.2.0） | Turquin スケール + \((1-\mathrm{DFG})\) | Fdez-Agüera 2019 + ライトマップ照度 |
 | Specular AA \(\kappa\) | 0.2 | Tokuyoshi 2021 / Kaplanyan 0.18 |
+| 直接拡散（0.3.0） | EON を鏡面に加算 | OpenPBR 式 41: \(1-E_{\mathrm{spec}}(\omega_o)\) |
+| Quest 拡散（0.3.0） | Lambert | FON 単散乱 |
+| コート（0.3.0） | IOR 1.5、暗化なし | IOR 1.6 + \(\Delta\) |
+| SAA（0.3.0） | PC シェーディング法線のみ | 幾何フロア + centroid + Quest 幾何 |
+| 方向ライトマップ（0.3.0） | バイリニア | 色と同じ bicubic |
 
 ## 16. 出典
 
@@ -362,8 +405,10 @@ Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリア
 - Fdez-Agüera 2019, A Multiple-Scattering Microfacet Model for Real-Time IBL
 - Jimenez et al. 2016, Practical Realtime Strategies for Accurate Indirect Occlusion
 - Tokuyoshi & Kaplanyan 2019/2021, Geometric Specular Antialiasing
-- Kutz et al. 2021 / OpenPBR 1.0, F82-tint
+- Vlachos 2015, Advanced VR Rendering（centroid 法線、幾何ラフネスフロア）
+- Kutz et al. 2021 / OpenPBR 1.1, F82-tint, coat_darkening, albedo-scaling
 - Portsmouth, Kutz, Hill 2024/2025, EON: A practical energy-preserving rough diffuse BRDF
+- Kutz 2025, OpenPBR: Novel Features and Implementation Details (arXiv:2512.23696)
 - Heitz et al. 2016, Real-Time Polygonal-Light Shading with Linearly Transformed Cosines
 - Geomerics, Reconstructing Diffuse Lighting from Spherical Harmonic Data
 - Google Filament PBR document and `surface_brdf.fs` / `surface_ambient_occlusion.fs` / `surface_shading_lit.fs`
