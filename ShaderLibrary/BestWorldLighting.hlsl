@@ -52,7 +52,12 @@ void BestWorldLTCGI(BestWorldSurface s, float2 lightmapUV, inout float3 diffuse,
     #if defined(BESTWORLD_HAS_LTCGI) && defined(_LTCGI) && !defined(BESTWORLD_QUALITY_QUEST)
         half3 ltcDiff = 0;
         half3 ltcSpec = 0;
-        LTCGI_Contribution(s.worldPos, s.normal, s.view, s.perceptualRoughness, lightmapUV, ltcDiff, ltcSpec);
+        // PiMaker / Graphlit / Mochie: lmuv is raw mesh UV1, not unity_LightmapST-transformed.
+        float2 rawLM = 0.0;
+        #ifdef LIGHTMAP_ON
+            rawLM = (lightmapUV - unity_LightmapST.zw) / max(abs(unity_LightmapST.xy), BESTWORLD_EPS);
+        #endif
+        LTCGI_Contribution(s.worldPos, s.normal, s.view, s.perceptualRoughness, rawLM, ltcDiff, ltcSpec);
         diffuse += (float3)ltcDiff * s.diffuseColor;
         specular += (float3)ltcSpec;
     #endif
