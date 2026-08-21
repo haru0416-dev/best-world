@@ -155,6 +155,7 @@ void BestWorldIndirectLighting(
     float3 FssEss, FmsEms, kD;
     BestWorldFdezIbl(
         s.f0, s.diffuseColor, s.specularWeight, s.perceptualRoughness, NoV, dfg,
+        s.f82Tint, s.metallic,
         FssEss, FmsEms, kD);
     float3 ibl = BestWorldGlossyIBL(R, s.perceptualRoughness, s.worldPos);
 
@@ -162,12 +163,14 @@ void BestWorldIndirectLighting(
         UNITY_BRANCH
         if (s.coatWeight > 0.001)
         {
-            float fcc = BestWorldF_Schlick(0.04, 1.0, NoV) * s.coatWeight;
+            float fcc = BestWorldF_Schlick(s.coatF0, 1.0, NoV) * s.coatWeight;
             float3 coatIBL = BestWorldGlossyIBL(R, s.coatPerceptualRoughness, s.worldPos);
-            ibl *= 1.0 - fcc;
-            FssEss *= 1.0 - fcc;
-            FmsEms *= 1.0 - fcc;
-            kD *= 1.0 - fcc;
+            float3 baseAlbedo = saturate(s.diffuseColor + s.f0 * s.metallic);
+            float3 dark = BestWorldCoatDarkening(s.coatF0, s.coatWeight, s.coatDarkening, baseAlbedo);
+            ibl *= dark * (1.0 - fcc);
+            FssEss *= dark * (1.0 - fcc);
+            FmsEms *= dark * (1.0 - fcc);
+            kD *= dark * (1.0 - fcc);
             specular += coatIBL * fcc * specAO;
         }
     #endif

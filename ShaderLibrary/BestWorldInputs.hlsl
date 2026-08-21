@@ -32,6 +32,8 @@ float _EmissionGIMultiplier;
 float4 _F82Tint;
 float _CoatWeight;
 float _CoatRoughness;
+float _CoatIOR;
+float _CoatDarkening;
 float _BicubicLightmap;
 float _BakeryMonoSH;
 float _DetailAlbedoScale;
@@ -49,6 +51,9 @@ struct BestWorldV2F
     UNITY_FOG_COORDS(7)
 #ifdef VERTEXLIGHT_ON
     float3 vertexLight : TEXCOORD8;
+#endif
+#if !defined(BESTWORLD_QUALITY_QUEST)
+    centroid float3 centroidNormal : TEXCOORD9;
 #endif
     float4 color : COLOR;
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -161,9 +166,9 @@ void BestWorldBuildSurface(
         tangent * mapNormal.x + bitangent * mapNormal.y + geometricNormal * mapNormal.z);
 
     #if !defined(BESTWORLD_QUALITY_QUEST)
-        float perceptualAA = BestWorldSpecularAA(saturate(perceptualRoughness), N);
+        float perceptualAA = BestWorldSpecularAA(saturate(perceptualRoughness), N, geometricNormal);
     #else
-        float perceptualAA = saturate(perceptualRoughness);
+        float perceptualAA = BestWorldSpecularAAQuest(saturate(perceptualRoughness), geometricNormal);
     #endif
 
     float reflectance = saturate(_Reflectance);
@@ -191,12 +196,16 @@ void BestWorldBuildSurface(
     s.coatWeight = 0.0;
     s.coatPerceptualRoughness = 0.1;
     s.coatRoughness = BestWorldPerceptualToLinearRoughness(0.1);
+    s.coatF0 = BestWorldIorToF0(1.6);
+    s.coatDarkening = 1.0;
 
     #if defined(_CLEARCOAT) && !defined(BESTWORLD_QUALITY_QUEST)
         float coatMask = UNITY_SAMPLE_TEX2D_SAMPLER(_CoatMaskMap, _MainTex, uv).r;
         s.coatWeight = saturate(_CoatWeight * coatMask);
         s.coatPerceptualRoughness = saturate(_CoatRoughness);
         s.coatRoughness = BestWorldPerceptualToLinearRoughness(s.coatPerceptualRoughness);
+        s.coatF0 = BestWorldIorToF0(max(_CoatIOR, 1.0));
+        s.coatDarkening = saturate(_CoatDarkening);
     #endif
 
     #if defined(BESTWORLD_TRANSPARENT) && defined(_ALPHAPREMULTIPLY_ON)
