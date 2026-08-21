@@ -31,13 +31,13 @@ L_o \leftarrow L_o + (f_d + f_r)\, E\, a\, \langle n\cdot l\rangle
 glTF / Filament の metallic-roughness。
 
 - 知覚ラフネス \(p \in [0,1]\)。線形ラフネス \(\alpha = p^2\)（Burley 2012）。\(\alpha\) を直接スライダーにするとハイライト幅が知覚的に線形でない。
-- 雙電体 F0: Filament は reflectance \(r\)（既定 0.5）から
+- 誘電体 F0: Filament は reflectance \(r\)（既定 0.5）から
 
 \[
 F_{0,\mathrm{diel}} = 0.16\, r^2
 \]
 
-\(r=0.5\) で \(F_0=0.04\)。これは IOR 1.5 の空気–雙電体界面に対応します。
+\(r=0.5\) で \(F_0=0.04\)。これは IOR 1.5 の空気–誘電体界面に対応します。
 
 \[
 F_0 = \frac{(1-1.5)^2}{(1+1.5)^2} = 0.04
@@ -97,7 +97,7 @@ Schlick:
 F(\mu) = F_0 + (F_{90}-F_0)(1-\mu)^5,\qquad \mu = h\cdot v
 \]
 
-Filament は \(F_{90}=\mathrm{saturate}(\langle F_0,\,(50\cdot 0.33,50\cdot 0.33,50\cdot 0.33)\rangle)\) を雙電体ローブに使います。輝度近似で、典型的な \(F_0=0.04\) では \(F_{90}=1\) になります。\(F_0\) が極端に暗い（スペキュラオクルージョンを F0 に焼いた）面では grazing も落ちます。金属ローブは OpenPBR の F82-tint で、その中の Schlick は \(F_{90}=1\) です。
+Filament は \(F_{90}=\mathrm{saturate}(\langle F_0,\,(50\cdot 0.33,50\cdot 0.33,50\cdot 0.33)\rangle)\) を誘電体ローブに使います。輝度近似で、典型的な \(F_0=0.04\) では \(F_{90}=1\) になります。\(F_0\) が極端に暗い（スペキュラオクルージョンを F0 に焼いた）面では grazing も落ちます。金属ローブは OpenPBR の F82-tint で、その中の Schlick は \(F_{90}=1\) です。
 
 導体のシルエット付近（約 82°、\(\bar\mu=1/7\)）は Schlick より反射が落ちます。OpenPBR:
 
@@ -109,7 +109,7 @@ F_{82}(\mu)=F_{\mathrm{Schlick}}(\mu)-\frac{\mu(1-\mu)^6}{\bar\mu(1-\bar\mu)^6}\
 F(\bar\mu)=\mathtt{specular\_color}\, F_{\mathrm{Schlick}}(\bar\mu)
 \]
 
-`specular_color = 1` なら補正項は 0 で Schlick に戻ります。雙電体ローブには掛けず、金属側だけ使います。
+`specular_color = 1` なら補正項は 0 で Schlick に戻ります。誘電体ローブには掛けず、金属側だけ使います。
 
 ## 4. 拡散
 
@@ -144,7 +144,7 @@ Burley 2012 は Filament の既定でしたが、炉試験でエネルギーを�
 
 ### 4.1 レイヤ結合（OpenPBR 1.1 式 41）
 
-Glossy-diffuse は雙電体界面の上に拡散基板です。Albedo-scaling:
+Glossy-diffuse は誘電体界面の上に拡散基板です。Albedo-scaling:
 
 \[
 f = f_{\mathrm{spec}} + \bigl(1-E_{\mathrm{spec}}(\omega_o)\bigr)\, f_{\mathrm{diffuse}}
@@ -262,7 +262,7 @@ L = F_{ss}E_{ss}\,L_{\mathrm{cube}} + (F_{ms}E_{ms}+k_D)\,E_{\mathrm{irradiance}
 k_D = c_{\mathrm{diff}}\bigl(1-(F_{ss}E_{ss}+F_{ms}E_{ms})\bigr)
 \]
 
-炉試験で金属・雙電体ともエネルギーが保たれます。滑らかな金属の IBL は F82（\(n\cdot v\)）、ラフな金属は Fdez のラフネス依存 grazing に戻します。DFG LUT が無いので、完全な F82 スプリットサムではありません。
+炉試験で金属・誘電体ともエネルギーが保たれます。滑らかな金属の IBL は F82（\(n\cdot v\)）、ラフな金属は Fdez のラフネス依存 grazing に戻します。DFG LUT が無いので、完全な F82 スプリットサムではありません。
 
 Unity のキューブマップは BIRP のフィルタに合わせてミップを切ります。`Unity_GlossyEnvironment` は線形 \(p\cdot\mathrm{LOD}\) ではなく
 
@@ -383,7 +383,7 @@ Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリア
 | 拡散 IBL | 鏡面 DFG を引いていなかった | split-sum のエネルギー |
 | 露出オクルージョン | アドホック多項式 | Lagarde specAO + ベイク輝度 |
 | 直接拡散 | Burley に \((1-F)\) を掛けていた | Filament: Burley が grazing を担う |
-| 雙電体 \(F_{90}\) | スカラー `dot(f0, 16.5)` | Filament: `dot(f0, vec3(50·0.33))` |
+| 誘電体 \(F_{90}\) | スカラー `dot(f0, 16.5)` | Filament: `dot(f0, vec3(50·0.33))` |
 | PC 拡散（0.2.0） | Burley 2012 | OpenPBR EON 2024 |
 | IBL エネルギー（0.2.0） | Turquin スケール + \((1-\mathrm{DFG})\) | Fdez-Agüera 2019 + ライトマップ照度 |
 | Specular AA \(\kappa\) | 0.2 | Tokuyoshi 2021 / Kaplanyan 0.18 |
