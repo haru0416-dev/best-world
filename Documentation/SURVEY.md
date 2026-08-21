@@ -36,7 +36,7 @@
 - **NDF**: GGX / Trowbridge–Reitz（Walter 2007）。GTR / Student-t はエンジン既定になっていない。
 - **可視**: Height-correlated Smith（Heitz 2014）。Quest は Hammon 2017 Fast。
 - **ラフネス**: \(\alpha=p^2\)（Burley のパラメータ化だけ残す）。
-- **電媒体 F0**: \(0.16 r^2\)（Filament / glTF）。
+- **誘電体 F0**: \(0.16 r^2\)（Filament / glTF）。
 - **エリアライト**: LTC（Heitz 2016）を LTCGI パッケージ経由。自前コピーしない。
 - **ベイク**: Bakery MonoSH + Unity ライトマップ。フル SH/RNM はクラブ向けの VRAM コスト。
 
