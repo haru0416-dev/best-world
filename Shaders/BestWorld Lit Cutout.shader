@@ -36,7 +36,7 @@ Shader "BestWorld/Lit Cutout"
 
         [Header(Lighting)]
         [ToggleUI] _UseVertexColor ("Vertex Color Albedo", Float) = 0
-        [ToggleUI] _BicubicLightmap ("Bicubic Lightmap", Float) = 1
+        [ToggleUI] _BicubicLightmap ("Bicubic Lightmap and Shadowmask", Float) = 1
         [ToggleUI] _BakeryMonoSH ("Bakery MonoSH", Float) = 0
         [Toggle(_LTCGI)] _LTCGI ("LTCGI", Float) = 0
         [Toggle(_DETAIL_MAP)] _DETAIL_MAP ("Detail Maps", Float) = 0
