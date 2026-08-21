@@ -5,6 +5,7 @@
 - Albedo is sRGB. Packed ORM is linear.
 - Dielectrics: metallic 0, reflectance 0.5 (F0 ≈ 0.04).
 - Metals: metallic 1, albedo is the F0 color, F82 tint stays white unless the metal needs a darker edge.
+- Clearcoat is opt-in. Default IOR is 1.6 (OpenPBR). Coat Darkening 1 is the physical wet/paint look; 0 keeps the base albedo.
 - Roughness is roughness, not smoothness, in ORM mode.
 - Emission uses the GI multiplier in the meta pass. Bake after setting it.
 
@@ -35,7 +36,7 @@ Android uses the second SubShader:
 
 - No ForwardAdd
 - No clearcoat / parallax / detail / bicubic / LTCGI
-- Lambert diffuse, faster visibility term
+- FON single-scatter (not Lambert), Filament mediump D, geometric specular AA
 - Lightmaps, probes, and Fdez-Agüera IBL energy remain
 
 Test the Android build. A PC-only hero material can stay `BestWorld/Lit` with expensive toggles off; the SubShader still drops features on Quest.
