@@ -1,3 +1,13 @@
+# BestWorld 0.3.0
+
+- Broader 2018–2026 survey (OpenPBR 1.1, SIGGRAPH 2025 PBS, Filament mobile D, Vlachos VR, Light Volumes API).
+- Direct diffuse uses OpenPBR albedo-scaling (`1 - E_spec`) so EON/FON no longer double-count with GGX.
+- Quest diffuse is FON single-scatter, not Lambert. Geometric specular AA is on.
+- Clearcoat defaults to OpenPBR IOR 1.6 plus coat darkening.
+- Smooth-metal IBL uses F82; lightmapped/SH specular uses the same F82 + Turquin path as punctual lights.
+- Bicubic filtering applies to directional / MonoSH maps, not just color.
+- PC silhouette sparkle uses centroid geometric normals (Vlachos). Cutout cards get a weak diffuse wrap.
+
 # BestWorld 0.2.0
 
 - Surveyed 2018–2026 shading papers in parallel with the 0.1.1 re-derivation.
