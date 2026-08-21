@@ -1,6 +1,6 @@
 # BestWorld アルゴリズム導出
 
-一次資料から組み立てた式と、BestWorld が採用した実装の対応表です。VRChat シェーダーのソースは見ていません。論文・仕様・Unity の公開インクルード・Bakery / Light Volumes / LTCGI の公開 API 説明に依拠します。
+一次資料から組み立てた式と、BestWorld が採用した実装の対応表です。材質 BRDF は論文・仕様・Filament 公開ドキュメントから再実装しています。0.4.0 のワールド照明（距離ラフネス、ZH3、Shadowmask 三次、Volumes の L2 復帰、LTCGI の生 UV1）は出荷シェーダーを読んだうえで、公開式だけを再実装しています。ソース転載はありません。
 
 記号: \(n\) 法線、\(v\) 視線、\(l\) 光線、\(h = \mathrm{normalize}(v+l)\)。\(\alpha\) は線形ラフネス、\(p\) は知覚ラフネス（アーティスト値）。\(\langle x \rangle = \max(x,0)\)。
 
@@ -31,13 +31,13 @@ L_o \leftarrow L_o + (f_d + f_r)\, E\, a\, \langle n\cdot l\rangle
 glTF / Filament の metallic-roughness。
 
 - 知覚ラフネス \(p \in [0,1]\)。線形ラフネス \(\alpha = p^2\)（Burley 2012）。\(\alpha\) を直接スライダーにするとハイライト幅が知覚的に線形でない。
-- 誘電体 F0: Filament は reflectance \(r\)（既定 0.5）から
+- 電介体 F0: Filament は reflectance \(r\)（既定 0.5）から
 
 \[
 F_{0,\mathrm{diel}} = 0.16\, r^2
 \]
 
-\(r=0.5\) で \(F_0=0.04\)。これは IOR 1.5 の空気–誘電体界面に対応します。
+\(r=0.5\) で \(F_0=0.04\)。これは IOR 1.5 の空気–電介体界面に対応します。
 
 \[
 F_0 = \frac{(1-1.5)^2}{(1+1.5)^2} = 0.04
@@ -97,7 +97,7 @@ Schlick:
 F(\mu) = F_0 + (F_{90}-F_0)(1-\mu)^5,\qquad \mu = h\cdot v
 \]
 
-Filament は \(F_{90}=\mathrm{saturate}(\langle F_0,\,(50\cdot 0.33,50\cdot 0.33,50\cdot 0.33)\rangle)\) を誘電体ローブに使います。輝度近似で、典型的な \(F_0=0.04\) では \(F_{90}=1\) になります。\(F_0\) が極端に暗い（スペキュラオクルージョンを F0 に焼いた）面では grazing も落ちます。金属ローブは OpenPBR の F82-tint で、その中の Schlick は \(F_{90}=1\) です。
+Filament は \(F_{90}=\mathrm{saturate}(\langle F_0,\,(50\cdot 0.33,50\cdot 0.33,50\cdot 0.33)\rangle)\) を電介体ローブに使います。輝度近似で、典型的な \(F_0=0.04\) では \(F_{90}=1\) になります。\(F_0\) が極端に暗い（スペキュラオクルージョンを F0 に焼いた）面では grazing も落ちます。金属ローブは OpenPBR の F82-tint で、その中の Schlick は \(F_{90}=1\) です。
 
 導体のシルエット付近（約 82°、\(\bar\mu=1/7\)）は Schlick より反射が落ちます。OpenPBR:
 
@@ -109,7 +109,7 @@ F_{82}(\mu)=F_{\mathrm{Schlick}}(\mu)-\frac{\mu(1-\mu)^6}{\bar\mu(1-\bar\mu)^6}\
 F(\bar\mu)=\mathtt{specular\_color}\, F_{\mathrm{Schlick}}(\bar\mu)
 \]
 
-`specular_color = 1` なら補正項は 0 で Schlick に戻ります。誘電体ローブには掛けず、金属側だけ使います。
+`specular_color = 1` なら補正項は 0 で Schlick に戻ります。電介体ローブには掛けず、金属側だけ使います。
 
 ## 4. 拡散
 
@@ -144,7 +144,7 @@ Burley 2012 は Filament の既定でしたが、炉試験でエネルギーを�
 
 ### 4.1 レイヤ結合（OpenPBR 1.1 式 41）
 
-Glossy-diffuse は誘電体界面の上に拡散基板です。Albedo-scaling:
+Glossy-diffuse は電介体界面の上に拡散基板です。Albedo-scaling:
 
 \[
 f = f_{\mathrm{spec}} + \bigl(1-E_{\mathrm{spec}}(\omega_o)\bigr)\, f_{\mathrm{diffuse}}
@@ -262,7 +262,7 @@ L = F_{ss}E_{ss}\,L_{\mathrm{cube}} + (F_{ms}E_{ms}+k_D)\,E_{\mathrm{irradiance}
 k_D = c_{\mathrm{diff}}\bigl(1-(F_{ss}E_{ss}+F_{ms}E_{ms})\bigr)
 \]
 
-炉試験で金属・誘電体ともエネルギーが保たれます。滑らかな金属の IBL は F82（\(n\cdot v\)）、ラフな金属は Fdez のラフネス依存 grazing に戻します。DFG LUT が無いので、完全な F82 スプリットサムではありません。
+炉試験で金属・電介体ともエネルギーが保たれます。滑らかな金属の IBL は F82（\(n\cdot v\)）、ラフな金属は Fdez のラフネス依存 grazing に戻します。DFG LUT が無いので、完全な F82 スプリットサムではありません。
 
 Unity のキューブマップは BIRP のフィルタに合わせてミップを切ります。`Unity_GlossyEnvironment` は線形 \(p\cdot\mathrm{LOD}\) ではなく
 
@@ -271,6 +271,14 @@ p' = p(1.7-0.7p),\qquad \mathrm{mip} = p'\cdot \mathrm{UNITY\_SPECCUBE\_LOD\_STE
 \]
 
 です。Box projection は Unity `BoxProjectedCubemapDirection`。
+
+PC ではさらに Frostbite / HDRP の距離ラフネスを **ミップだけ** に掛けます（Lagarde 2014 §4.10.2）。AABB との交点まで距離 \(t\)、交点からプローブ中心まで \(d\) として
+
+\[
+p_{\mathrm{mip}} = \mathrm{lerp}\bigl(\mathrm{clamp}(\tfrac{t}{d}\,p,\,0,\,p),\, p,\, p\bigr)
+\]
+
+\(p=0\) の鏡面は鏡のままです。Fdez の DFG / \(k_D\) はシェーディングラフネスのままなので、部屋の大きさでエネルギーが変わりません。ブレンドする 2 プローブはそれぞれ自分の \(t,d\) とミップを持ちます。Quest は Unity のボックス投影だけです。
 
 ## 9. Clearcoat
 
@@ -308,7 +316,28 @@ L_0 = (\mathtt{SHAr}.w,\;\mathtt{SHAg}.w,\;\mathtt{SHAb}.w)
 L_{1r}=\mathtt{SHAr}.xyz,\quad \text{irradiance}_r = L_{0r} + L_{1r}\cdot n
 \]
 
-L2 は `ShadeSH9` が含むので、ボリュームが無い動的メッシュの拡散は `ShadeSH9`、スペキュラ用の優勢方向だけ L1 を使います。
+L2 は `ShadeSH9` が含むので、**ボリュームが無い**動的メッシュの拡散は `ShadeSH9`、スペキュラ用の優勢方向だけ L1 を使います。ZH3 を Unity プローブに重ねないのは、本物の L2 があるからです。
+
+Light Volumes は L1 までです。PC では線形評価の代わりに ZH3 hallucination（Roughton et al., i3D 2024 §3.4.3）を使います。Unity / ボリュームの係数は余弦畳み込み済み（照度）なので、一度放射輝度へ戻してから曲線フィットし、L2 帯域の余弦スケール \(1/4\) を足します。
+
+\[
+L_{0}^{\mathrm{rad}} = 2\sqrt{\pi}\, L_0,\qquad L_{1}^{\mathrm{rad}} = \sqrt{3\pi}\, L_1
+\]
+
+\[
+r = \frac{\|L_1^{\mathrm{rad}}\}{L_0^{\mathrm{rad}}},\qquad
+c_2 = L_0^{\mathrm{rad}}\bigl(0.08\, r + 0.6\, r^2\bigr)
+\]
+
+\[
+Y_2^0(z) = \sqrt{\frac{5}{16\pi}}(3z^2-1),\qquad z = \hat L_1\cdot n
+\]
+
+\[
+E = L_0 + L_1\cdot n + \tfrac14 c_2\, Y_2^0(z)
+\]
+
+軸は RGB 別です。クラブのポイントライトはチャンネルで方向が違うので、論文の輝度軸よりこちらが合います。Quest は線形のままです。Geomerics は MonoSH 専用に残します（論文 Fig.6: 照度を盛りすぎる）。
 
 ## 11. ライトマップ
 
@@ -346,7 +375,7 @@ E = L_0 + (L_1\cdot n) = L_0\bigl(1 + 2\, nL_1\cdot n\bigr)
 
 ### 11.3 Bicubic
 
-Keys / GPU Gems 系の 4 タップ三次。**色マップと方向マップの両方**に掛けます。色だけ三次だと MonoSH / Dominant Direction のハイライトがテクセル格子に戻ります。Quest ではバイリニアのままです。
+Keys / GPU Gems 系の 4 タップ三次。**色マップと方向マップと Shadowmask** に掛けます。色だけ三次だと MonoSH のハイライトと Mixed の影縁がテクセル格子に戻ります。Quest ではバイリニアのままです。Shadowmask の三次は PC ForwardBase だけです（Add は距離減衰を Unity マクロに残す）。
 
 Cutout の拡散だけ、弱い wrap \(\mathrm{saturate}((n\cdot l + 0.25)/1.25)\) を使います。葉カードの裏面用で、鏡面とシャドウは `saturate(n·l)` のままです。
 
@@ -357,18 +386,23 @@ Cutout の拡散だけ、弱い wrap \(\mathrm{saturate}((n\cdot l + 0.25)/1.25)
 
 ## 13. VRC Light Volumes
 
-ボクセル L1 SH。API はパッケージ側。
+ボクセル L1 SH。API はパッケージ側。Point Light Volumes は `LightVolumeSH` / `LightVolumeAdditiveSH` が内部で足すので、こちらから二重に呼びません。
 
-- ライトマップ無し: `LightVolumeSH` がプローブの代わり。
-- ライトマップ有り: `LightVolumeAdditiveSH` だけを **加算**。ライトマップを置換しない（公式 For Shader Developers）。
+- ライトマップ無しかつ `_UdonLightVolumeEnabled>0`: `LightVolumeSH` がプローブの代わり。PC は ZH3 で評価。
+- ライトマップ有りかつ有効: `LightVolumeAdditiveSH` だけを **加算**。ライトマップを置換しない。
+- define はあるがシーンで無効: **`ShadeSH9`（L2 込み）**。`LightVolumeSH` のプローブ復帰は L1 だけなので使わない。
 
-評価は L0+L1。スペキュラは優勢 L1 方向でこちらの GGX / F82 / Turquin を使います。公式 `LightVolumeSpecularDominant` は Standard のフレネル前提なので呼びません。3 色 `LightVolumeSpecular` はアバター向けです。
+v3 をコンパイルしているときは `worldNormal` を渡します（ポイントライトの法線マスク）。
+
+スペキュラは優勢 L1 方向でこちらの GGX / F82 / Turquin を使います。公式 `LightVolumeSpecularDominant` は Standard のフレネル前提なので呼びません。3 色 `LightVolumeSpecular` はアバター向けです。
 
 Quest の GGX \(D\) は Filament の mediump 形 \(\|n\times h\|^2 = 1-(n\cdot h)^2\) です。`1-NoH^2` は GLES3 ハイライトで相殺します。
 
 ## 14. LTCGI
 
 Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリアライトを、クランプされた余弦ローブの線形変換で解析積分します。実装は `LTCGI.cginc` を include するだけです（ライセンス上コピーしない）。
+
+`LTCGI_Contribution` の `lmuv` は **メッシュの生 UV1** です（PiMaker、Graphlit、Mochie）。`unity_LightmapST` で変換した座標を渡すと、アトラスされたライトマップでスクリーンのオクルージョンがずれます。拡散は照度として `diffuseColor` を掛けます。鏡面に F0 は掛けません。VRC のスクリーンは電介体 4% 反射ではなく、面光源として見えることが契約です。
 
 ## 15. 初版からの修正
 
@@ -383,7 +417,7 @@ Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリア
 | 拡散 IBL | 鏡面 DFG を引いていなかった | split-sum のエネルギー |
 | 露出オクルージョン | アドホック多項式 | Lagarde specAO + ベイク輝度 |
 | 直接拡散 | Burley に \((1-F)\) を掛けていた | Filament: Burley が grazing を担う |
-| 誘電体 \(F_{90}\) | スカラー `dot(f0, 16.5)` | Filament: `dot(f0, vec3(50·0.33))` |
+| 電介体 \(F_{90}\) | スカラー `dot(f0, 16.5)` | Filament: `dot(f0, vec3(50·0.33))` |
 | PC 拡散（0.2.0） | Burley 2012 | OpenPBR EON 2024 |
 | IBL エネルギー（0.2.0） | Turquin スケール + \((1-\mathrm{DFG})\) | Fdez-Agüera 2019 + ライトマップ照度 |
 | Specular AA \(\kappa\) | 0.2 | Tokuyoshi 2021 / Kaplanyan 0.18 |
@@ -392,6 +426,11 @@ Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリア
 | コート（0.3.0） | IOR 1.5、暗化なし | IOR 1.6 + \(\Delta\) |
 | SAA（0.3.0） | PC シェーディング法線のみ | 幾何フロア + centroid + Quest 幾何 |
 | 方向ライトマップ（0.3.0） | バイリニア | 色と同じ bicubic |
+| IBL ボックス（0.4.0） | Unity 投影のみ | Frostbite 距離ラフネス（ミップ） |
+| Volume L1（0.4.0） | 線形 | PC ZH3 hallucination |
+| Volumes 無効フォールバック（0.4.0） | L1 プローブ | ShadeSH9 L2 |
+| Shadowmask（0.4.0） | バイリニア | ライトマップと同じ bicubic |
+| LTCGI UV（0.4.0） | 変換済み lightmap UV | 生 UV1（PiMaker 契約） |
 
 ## 16. 出典
 
@@ -411,6 +450,9 @@ Heitz et al. 2016, Linearly Transformed Cosines。矩形ポリゴンのエリア
 - Kutz 2025, OpenPBR: Novel Features and Implementation Details (arXiv:2512.23696)
 - Heitz et al. 2016, Real-Time Polygonal-Light Shading with Linearly Transformed Cosines
 - Geomerics, Reconstructing Diffuse Lighting from Spherical Harmonic Data
+- Roughton, Sloan, Silvennoinen, Iwanicki, Shirley 2024, ZH3: Quadratic Zonal Harmonics (i3D)
+- Lagarde & de Rousiers 2014, Moving Frostbite to PBR §4.10.2（距離ラフネス）
+- Unity HDRP `ComputeDistanceBaseRoughness` / `IntersectRayAABBSimple`
 - Google Filament PBR document and `surface_brdf.fs` / `surface_ambient_occlusion.fs` / `surface_shading_lit.fs`
 - Unity `UnityImageBasedLighting.cginc`, `DecodeDirectionalLightmap`
 - Bakery wiki (MonoSH) and published SH reconstruction scale

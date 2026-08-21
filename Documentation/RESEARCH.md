@@ -1,6 +1,6 @@
 # Research notes
 
-BestWorld を組む前に、2026 年時点の VRChat ワールドシェーダーと照明スタックを外部から整理したメモです。実装のソース転載はしていません。各アルゴリズムの式は [ALGORITHMS.md](./ALGORITHMS.md) に一次資料から書いてあります。2018 年以降の候補は [SURVEY.md](./SURVEY.md) で採否だけ残しています。
+BestWorld を組む前に、2026 年時点の VRChat ワールドシェーダーと照明スタックを外部から整理したメモです。0.4.0 で Graphlit / Mochie Standard / GeneLit / Filamented / ORL / peppermint と Light Volumes / LTCGI の実装を読み、論文に無い穴（距離ラフネス、ZH3、L2 復帰、Shadowmask 三次、LTCGI 生 UV1）を採否しました。ソース転載はしていません。
 
 ## Platform
 
@@ -29,13 +29,13 @@ The quality bar for “Standard, but the BRDF is not from 2015”. Filament GGX,
 
 ### Graphlit (z3y)
 
-The most complete *stack*: Filament/OpenPBR, Bakery MonoSH, Light Volumes, LTCGI, AreaLit, clustered lights. The cost is a node graph toolchain. It is the right hammer for shader authors, not the right default material for an entire world.
+The most complete *stack*: Filament/OpenPBR, Bakery MonoSH, Light Volumes, LTCGI (raw UV1), AreaLit, clustered lights, Frostbite probe roughness, ZH3, bicubic shadowmask. The cost is a node graph toolchain. BestWorld 0.4.0 takes the world-lighting subset without the editor or extra packages.
 
 ### Mochie Standard
 
-Flexible Standard replacement with LTCGI and Light Volumes support. Kitchen-sink variants. Fine on hero props, expensive as a world default.
+World-capable Standard replacement: HDRP distance roughness, bicubic lightmap/shadowmask, Light Volumes, LTCGI (raw UV1). Also ships SSR, rain, SSS, AudioLink, AreaLit, and a 1.5× directional boost. Those extras are why it is a hero-prop shader, not a world default. BestWorld keeps the lighting subset and drops the kitchen sink.
 
-### Poiyomi / lilToon / UnlitWF
+### Poiyomi / lilToon / UnlitWF / Xiexe / ACLS
 
 Avatar-first. They now receive Light Volumes and LTCGI so avatars can look correct *inside* a world. They are the wrong default for walls, floors, and baked furniture.
 
@@ -57,7 +57,7 @@ The honest Quest baseline. No realtime lighting on Lightmapped. Looks dated next
 - Unity Built-in GI macros — lightmaps, directional decode, shadowmask, subtractive, box-projected cubemaps, meta pass.
 - Bakery wiki — MonoSH as monochrome L1 in the directional map; lightmapped specular as an approximation, not a ground truth.
 - [VRC Light Volumes For Shader Developers](https://github.com/REDSIM/VRCLightVolumes/blob/main/Documentation/ForShaderDevelopers.md)
-- [LTCGI For Shader Authors](https://ltcgi.dev/Advanced/Shader_Authors)
+- [LTCGI For Shader Authors](https://ltcgi.dev/Advanced/Shader_Authors) — `lmuv` is raw UV1. Specular is accumulated without an extra F0 multiply.
 
 ## What “best” is not
 

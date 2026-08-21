@@ -1,8 +1,8 @@
 {
   "name": "dev.haru.bestworld",
   "displayName": "BestWorld",
-  "version": "0.3.0",
-  "description": "World-first physically based shader for VRChat worlds. OpenPBR 1.1 layering + EON/FON, Filament GGX, Fdez-Agüera IBL, baked lighting, optional VRC Light Volumes and LTCGI.",
+  "version": "0.4.0",
+  "description": "World-first physically based shader for VRChat worlds. OpenPBR 1.1 layering + EON/FON, Filament GGX, Fdez-Agüera IBL, ZH3 volumes, Frostbite probe roughness, baked lighting, optional VRC Light Volumes and LTCGI.",
   "unity": "2022.3",
   "unityRelease": "22f1",
   "license": "MIT",

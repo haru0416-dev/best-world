@@ -146,6 +146,33 @@ void BestWorldLightmappedSpecular(
 
 #endif
 
+float BestWorldSampleShadowMask(float2 uv, float3 worldPos)
+{
+    #if defined(SHADOWS_SHADOWMASK) && defined(LIGHTMAP_ON)
+        #if defined(BESTWORLD_QUALITY_QUEST)
+            return UnitySampleBakedOcclusion(uv, worldPos);
+        #else
+            UNITY_BRANCH
+            if (_BicubicLightmap > 0.5)
+            {
+                float2 size;
+                unity_Lightmap.GetDimensions(size.x, size.y);
+                float2 h0, h1, g0, g1;
+                BestWorldBicubicSetup(uv, size, h0, h1, g0, g1);
+                float4 s00 = UNITY_SAMPLE_TEX2D(unity_ShadowMask, h0);
+                float4 s10 = UNITY_SAMPLE_TEX2D(unity_ShadowMask, float2(h1.x, h0.y));
+                float4 s01 = UNITY_SAMPLE_TEX2D(unity_ShadowMask, float2(h0.x, h1.y));
+                float4 s11 = UNITY_SAMPLE_TEX2D(unity_ShadowMask, h1);
+                float4 raw = (s00 * g0.y + s01 * g1.y) * g0.x + (s10 * g0.y + s11 * g1.y) * g1.x;
+                return saturate(dot(raw, unity_OcclusionMaskSelector));
+            }
+            return UnitySampleBakedOcclusion(uv, worldPos);
+        #endif
+    #else
+        return UnitySampleBakedOcclusion(uv, worldPos);
+    #endif
+}
+
 float3 BestWorldSubtractiveShadow(float3 bakedGI, float shadow, float NoL)
 {
     float3 shadowColor = unity_ShadowColor.rgb;

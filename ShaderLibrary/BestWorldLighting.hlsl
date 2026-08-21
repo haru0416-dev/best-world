@@ -52,7 +52,12 @@ void BestWorldLTCGI(BestWorldSurface s, float2 lightmapUV, inout float3 diffuse,
     #if defined(BESTWORLD_HAS_LTCGI) && defined(_LTCGI) && !defined(BESTWORLD_QUALITY_QUEST)
         half3 ltcDiff = 0;
         half3 ltcSpec = 0;
-        LTCGI_Contribution(s.worldPos, s.normal, s.view, s.perceptualRoughness, lightmapUV, ltcDiff, ltcSpec);
+        // PiMaker / Graphlit / Mochie: lmuv is raw mesh UV1, not unity_LightmapST-transformed.
+        float2 rawLM = 0.0;
+        #ifdef LIGHTMAP_ON
+            rawLM = (lightmapUV - unity_LightmapST.zw) / max(abs(unity_LightmapST.xy), BESTWORLD_EPS);
+        #endif
+        LTCGI_Contribution(s.worldPos, s.normal, s.view, s.perceptualRoughness, rawLM, ltcDiff, ltcSpec);
         diffuse += (float3)ltcDiff * s.diffuseColor;
         specular += (float3)ltcSpec;
     #endif
@@ -68,8 +73,20 @@ BestWorldLight BestWorldMainLight(BestWorldV2F i, float3 worldPos)
         lightDir = BestWorldSafeNormalize(_WorldSpaceLightPos0.xyz - worldPos);
     }
     light.direction = lightDir;
-    UNITY_LIGHT_ATTENUATION(atten, i, worldPos);
-    light.attenuation = atten;
+    #if defined(BESTWORLD_FORWARD_ADD)
+        UNITY_LIGHT_ATTENUATION(atten, i, worldPos);
+        light.attenuation = atten;
+    #elif defined(SHADOWS_SHADOWMASK) && defined(LIGHTMAP_ON) && !defined(BESTWORLD_QUALITY_QUEST)
+        float realtime = UNITY_SHADOW_ATTENUATION(i, worldPos);
+        float baked = BestWorldSampleShadowMask(i.lightmapUV, worldPos);
+        float fadeDist = UnityComputeShadowFadeDistance(
+            worldPos, dot(worldPos - _WorldSpaceCameraPos, UNITY_MATRIX_V[2].xyz));
+        light.attenuation = UnityMixRealtimeAndBakedShadows(
+            realtime, baked, UnityComputeShadowFade(fadeDist));
+    #else
+        UNITY_LIGHT_ATTENUATION(atten, i, worldPos);
+        light.attenuation = atten;
+    #endif
     light.color = _LightColor0.rgb;
     return light;
 }
@@ -116,16 +133,22 @@ float3 BestWorldCollectIrradiance(
                 lmFocus = saturate(length(lmLightDir));
             }
         #endif
-        BestWorldAdditiveVolumeSH(s.worldPos, s.normal, L0, L1r, L1g, L1b);
-        irradiance += BestWorldEvalL1(s.normal, L0, L1r, L1g, L1b);
+        UNITY_BRANCH
+        if (BestWorldLightVolumesActive() > 0.0)
+        {
+            BestWorldAdditiveVolumeSH(s.worldPos, s.normal, L0, L1r, L1g, L1b);
+            irradiance += BestWorldEvalL1(s.normal, L0, L1r, L1g, L1b);
+        }
         return irradiance;
     #else
-        BestWorldVolumeSH(s.worldPos, s.normal, L0, L1r, L1g, L1b);
-        #if defined(BESTWORLD_HAS_VRC_LIGHT_VOLUMES)
+        UNITY_BRANCH
+        if (BestWorldLightVolumesActive() > 0.0)
+        {
+            BestWorldVolumeSH(s.worldPos, s.normal, L0, L1r, L1g, L1b);
             return BestWorldEvalL1(s.normal, L0, L1r, L1g, L1b);
-        #else
-            return BestWorldIrradianceSH(s.normal);
-        #endif
+        }
+        BestWorldExtractUnitySH(L0, L1r, L1g, L1b);
+        return BestWorldIrradianceSH(s.normal);
     #endif
 }
 
