@@ -1,0 +1,17 @@
+{
+  "name": "dev.haru.bestworld",
+  "displayName": "BestWorld",
+  "version": "0.2.0",
+  "description": "World-first physically based shader for VRChat worlds. OpenPBR EON + F82, Filament GGX, Fdez-Agüera IBL, baked lighting, optional VRC Light Volumes and LTCGI.",
+  "unity": "2022.3",
+  "unityRelease": "22f1",
+  "license": "MIT",
+  "author": {
+    "name": "Haru",
+    "url": "https://github.com/haru0416-dev"
+  },
+  "url": "https://github.com/haru0416-dev/best-world.git",
+  "vpmDependencies": {},
+  "legacyFolders": {},
+  "legacyFiles": {}
+}
