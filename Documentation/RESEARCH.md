@@ -50,8 +50,9 @@ The honest Quest baseline. No realtime lighting on Lightmapped. Looks dated next
 ## BRDF sources used for reimplementation
 
 - [Physically Based Rendering in Filament](https://google.github.io/filament/Filament.md.html) — GGX, Smith correlated visibility, energy compensation on punctual lights, specular AO, horizon occlusion, geometric specular AA, clearcoat Kelemen.
-- [OpenPBR 1.0](https://academysoftwarefoundation.github.io/OpenPBR/) — F82-tint metallic Fresnel; EON rough diffuse (Portsmouth et al. 2024).
+- [OpenPBR 1.1](https://academysoftwarefoundation.github.io/OpenPBR/) and [Kutz 2025 course notes](https://arxiv.org/abs/2512.23696) — F82-tint; EON; albedo-scaling layering; coat IOR 1.6 and coat_darkening.
 - Fdez-Agüera 2019 JCGT — IBL multiple scattering from split-sum DFG + cosine irradiance.
+- Vlachos, Advanced VR Rendering, GDC 2015 — centroid normals and geometric roughness floor for HMDs.
 - Karis UE4 SIGGRAPH notes — analytic EnvBRDF for IBL without a DFG LUT.
 - Unity Built-in GI macros — lightmaps, directional decode, shadowmask, subtractive, box-projected cubemaps, meta pass.
 - Bakery wiki — MonoSH as monochrome L1 in the directional map; lightmapped specular as an approximation, not a ground truth.
