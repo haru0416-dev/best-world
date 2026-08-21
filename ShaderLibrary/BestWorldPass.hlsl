@@ -26,6 +26,9 @@ BestWorldV2F BestWorldVert(BestWorldAppData v)
     o.tangentToWorld[0] = float4(t.x, b.x, n.x, worldPos.x);
     o.tangentToWorld[1] = float4(t.y, b.y, n.y, worldPos.y);
     o.tangentToWorld[2] = float4(t.z, b.z, n.z, worldPos.z);
+    #if !defined(BESTWORLD_QUALITY_QUEST)
+        o.centroidNormal = n;
+    #endif
 
     UNITY_TRANSFER_LIGHTING(o, v.uv1);
     UNITY_TRANSFER_FOG(o, o.pos);
@@ -43,7 +46,15 @@ void BestWorldUnpackTBN(BestWorldV2F i, out float3 tangent, out float3 bitangent
 {
     tangent = BestWorldSafeNormalize(float3(i.tangentToWorld[0].x, i.tangentToWorld[1].x, i.tangentToWorld[2].x));
     bitangent = BestWorldSafeNormalize(float3(i.tangentToWorld[0].y, i.tangentToWorld[1].y, i.tangentToWorld[2].y));
-    normal = BestWorldSafeNormalize(float3(i.tangentToWorld[0].z, i.tangentToWorld[1].z, i.tangentToWorld[2].z));
+    float3 n = float3(i.tangentToWorld[0].z, i.tangentToWorld[1].z, i.tangentToWorld[2].z);
+    #if !defined(BESTWORLD_QUALITY_QUEST)
+        // Vlachos GDC 2015: centroid fallback when MSAA extrapolates the normal at silhouettes.
+        if (dot(n, n) >= 1.01)
+        {
+            n = i.centroidNormal;
+        }
+    #endif
+    normal = BestWorldSafeNormalize(n);
     worldPos = float3(i.tangentToWorld[0].w, i.tangentToWorld[1].w, i.tangentToWorld[2].w);
 }
 

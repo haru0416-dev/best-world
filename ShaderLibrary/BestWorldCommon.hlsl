@@ -50,4 +50,10 @@ float BestWorldOneMinusReflectivity(float3 f0)
     return 1.0 - max(max(f0.r, f0.g), f0.b);
 }
 
+float BestWorldIorToF0(float ior)
+{
+    float a = (1.0 - ior) / max(1.0 + ior, BESTWORLD_EPS);
+    return a * a;
+}
+
 #endif
