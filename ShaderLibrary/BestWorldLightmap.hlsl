@@ -21,6 +21,20 @@ float3 BestWorldSampleLightmapBilinear(float2 uv)
     return DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, uv));
 }
 
+void BestWorldBicubicSetup(float2 uv, float2 size, out float2 h0, out float2 h1, out float2 g0, out float2 g1)
+{
+    float2 texel = 1.0 / max(size, 1.0);
+    float2 coord = uv * size - 0.5;
+    float2 f = frac(coord);
+    coord -= f;
+    float4 wx = BestWorldCubicWeights(f.x);
+    float4 wy = BestWorldCubicWeights(f.y);
+    g0 = float2(wx.x + wx.y, wy.x + wy.y);
+    g1 = float2(wx.z + wx.w, wy.z + wy.w);
+    h0 = float2(coord.x - 0.5 + wx.y / max(g0.x, BESTWORLD_EPS), coord.y - 0.5 + wy.y / max(g0.y, BESTWORLD_EPS)) * texel;
+    h1 = float2(coord.x + 1.5 + wx.w / max(g1.x, BESTWORLD_EPS), coord.y + 1.5 + wy.w / max(g1.y, BESTWORLD_EPS)) * texel;
+}
+
 float3 BestWorldSampleLightmapBicubic(float2 uv)
 {
     #if defined(BESTWORLD_QUALITY_QUEST)
@@ -28,18 +42,8 @@ float3 BestWorldSampleLightmapBicubic(float2 uv)
     #else
         float2 size;
         unity_Lightmap.GetDimensions(size.x, size.y);
-        float2 texel = 1.0 / max(size, 1.0);
-        float2 coord = uv * size - 0.5;
-        float2 f = frac(coord);
-        coord -= f;
-
-        float4 wx = BestWorldCubicWeights(f.x);
-        float4 wy = BestWorldCubicWeights(f.y);
-        float2 g0 = float2(wx.x + wx.y, wy.x + wy.y);
-        float2 g1 = float2(wx.z + wx.w, wy.z + wy.w);
-        float2 h0 = float2(coord.x - 0.5 + wx.y / max(g0.x, BESTWORLD_EPS), coord.y - 0.5 + wy.y / max(g0.y, BESTWORLD_EPS)) * texel;
-        float2 h1 = float2(coord.x + 1.5 + wx.w / max(g1.x, BESTWORLD_EPS), coord.y + 1.5 + wy.w / max(g1.y, BESTWORLD_EPS)) * texel;
-
+        float2 h0, h1, g0, g1;
+        BestWorldBicubicSetup(uv, size, h0, h1, g0, g1);
         float3 s00 = BestWorldSampleLightmapBilinear(h0);
         float3 s10 = BestWorldSampleLightmapBilinear(float2(h1.x, h0.y));
         float3 s01 = BestWorldSampleLightmapBilinear(float2(h0.x, h1.y));
@@ -62,9 +66,31 @@ float3 BestWorldSampleLightmap(float2 uv)
     #endif
 }
 
-float4 BestWorldSampleLightmapDir(float2 uv)
+float4 BestWorldSampleLightmapDirBilinear(float2 uv)
 {
     return UNITY_SAMPLE_TEX2D_SAMPLER(unity_LightmapInd, unity_Lightmap, uv);
+}
+
+float4 BestWorldSampleLightmapDir(float2 uv)
+{
+    #if defined(BESTWORLD_QUALITY_QUEST)
+        return BestWorldSampleLightmapDirBilinear(uv);
+    #else
+        UNITY_BRANCH
+        if (_BicubicLightmap > 0.5)
+        {
+            float2 size;
+            unity_Lightmap.GetDimensions(size.x, size.y);
+            float2 h0, h1, g0, g1;
+            BestWorldBicubicSetup(uv, size, h0, h1, g0, g1);
+            float4 s00 = BestWorldSampleLightmapDirBilinear(h0);
+            float4 s10 = BestWorldSampleLightmapDirBilinear(float2(h1.x, h0.y));
+            float4 s01 = BestWorldSampleLightmapDirBilinear(float2(h0.x, h1.y));
+            float4 s11 = BestWorldSampleLightmapDirBilinear(h1);
+            return (s00 * g0.y + s01 * g1.y) * g0.x + (s10 * g0.y + s11 * g1.y) * g1.x;
+        }
+        return BestWorldSampleLightmapDirBilinear(uv);
+    #endif
 }
 
 float3 BestWorldDirectionalLightmap(float3 color, float4 dirTex, float3 normal)
@@ -110,10 +136,12 @@ void BestWorldLightmappedSpecular(
     float perceptual = lerp(s.perceptualRoughness, 1.0, 1.0 - saturate(directionality));
     float a = BestWorldPerceptualToLinearRoughness(perceptual);
     BestWorldBRDF b = BestWorldGetBRDF(s.normal, s.view, L);
-    float3 F = BestWorldF_Schlick(s.f0, 1.0.xxx, b.VoH) * s.specularWeight;
-    float D = BestWorldD_GGX(b.NoH, a);
+    float3 F = BestWorldFresnel(s, b.VoH);
+    float D = BestWorldD_GGX(b.NoH, a, s.normal, b.H);
     float Vterm = BestWorldV_SmithGGXFast(b.NoV, b.NoL, a);
-    specular += D * Vterm * F * L0 * b.NoL * saturate(directionality);
+    float2 dfg = BestWorldEnvBRDF(b.NoV, perceptual);
+    float3 energy = BestWorldEnergyCompensation(s.f0, dfg);
+    specular += D * Vterm * F * energy * L0 * b.NoL * saturate(directionality);
 }
 
 #endif

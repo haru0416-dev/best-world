@@ -30,6 +30,8 @@ Shader "BestWorld/Lit Cutout"
         _F82Tint ("Metal Edge Tint (F82)", Color) = (1,1,1,1)
         _CoatWeight ("Clearcoat", Range(0, 1)) = 0
         _CoatRoughness ("Clearcoat Roughness", Range(0, 1)) = 0.1
+        _CoatIOR ("Clearcoat IOR", Range(1.0, 3.0)) = 1.6
+        _CoatDarkening ("Clearcoat Darkening", Range(0, 1)) = 1
         [NoScaleOffset] _CoatMaskMap ("Clearcoat Mask", 2D) = "white" {}
 
         [Header(Lighting)]
